@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<title>Megabox Conquest</title>
+<style>
+    body {
+        background: black;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    canvas {
+        background: #222;
+        display: block;
+        margin: auto;
+        border: 3px solid white;
+    }
+    h1 {
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+    <h1>🎮 Megabox Conquest</h1>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <p>Arrow Keys বা টাচ করে খেলুন</p>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const gridSize = 20;
+let player = { x: 0, y: 0, dx: 1, dy: 0 };
+let trail = [];
+let enemies = [{x: 10, y: 10, dx: 1, dy: 1}];
+let filled = [];
+let score = 0;
+
+// Initialize filled area
+for (let y = 0; y < canvas.height / gridSize; y++) {
+    filled[y] = [];
+    for (let x = 0; x < canvas.width / gridSize; x++) {
+        filled[y][x] = (x === 0 || y === 0 || x === (canvas.width/gridSize)-1 || y === (canvas.height/gridSize)-1);
+    }
+}
+
+function drawGrid() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Filled area
+    ctx.fillStyle = "blue";
+    for (let y = 0; y < filled.length; y++) {
+        for (let x = 0; x < filled[0].length; x++) {
+            if (filled[y][x]) {
+                ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+            }
+        }
+    }
+    
+    // Trail
+    ctx.fillStyle = "cyan";
+    trail.forEach(t => {
+        ctx.fillRect(t.x * gridSize, t.y * gridSize, gridSize, gridSize);
+    });
+    
+    // Player
+    ctx.fillStyle = "yellow";
+    ctx.fillRect(player.x * gridSize, player.y * gridSize, gridSize, gridSize);
+    
+    // Enemies
+    ctx.fillStyle = "red";
+    enemies.forEach(e => {
+        ctx.fillRect(e.x * gridSize, e.y * gridSize, gridSize, gridSize);
+    });
+    
+    // Score
+    ctx.fillStyle = "white";
+    ctx.fillText("Score: " + score, 10, canvas.height - 10);
+}
+
+function movePlayer() {
+    player.x += player.dx;
+    player.y += player.dy;
+    
+    if (player.x < 0 || player.y < 0 || player.x >= canvas.width / gridSize || player.y >= canvas.height / gridSize) {
+        resetGame();
+    }
+    
+    // If moving in empty area
+    if (!filled[player.y][player.x]) {
+        trail.push({x: player.x, y: player.y});
+    } else {
+        if (trail.length > 0) {
+            trail.forEach(t => filled[t.y][t.x] = true);
+            score += trail.length;
+            trail = [];
+        }
+    }
+}
+
+function moveEnemies() {
+    enemies.forEach(e => {
+        e.x += e.dx;
+        e.y += e.dy;
+        if (e.x <= 0 || e.x >= (canvas.width / gridSize)-1) e.dx *= -1;
+        if (e.y <= 0 || e.y >= (canvas.height / gridSize)-1) e.dy *= -1;
+        
+        // If hits player trail -> Game Over
+        trail.forEach(t => {
+            if (t.x === e.x && t.y === e.y) {
+                resetGame();
+            }
+        });
+        
+        // If hits player directly
+        if (e.x === player.x && e.y === player.y) {
+            resetGame();
+        }
+    });
+}
+
+function resetGame() {
+    alert("Game Over! Score: " + score);
+    player = { x: 0, y: 0, dx: 1, dy: 0 };
+    trail = [];
+    score = 0;
+    for (let y = 0; y < filled.length; y++) {
+        for (let x = 0; x < filled[0].length; x++) {
+            filled[y][x] = (x === 0 || y === 0 || x === (canvas.width/gridSize)-1 || y === (canvas.height/gridSize)-1);
+        }
+    }
+}
+
+document.addEventListener("keydown", e => {
+    if (e.key === "ArrowUp" && player.dy === 0) { player.dx = 0; player.dy = -1; }
+    if (e.key === "ArrowDown" && player.dy === 0) { player.dx = 0; player.dy = 1; }
+    if (e.key === "ArrowLeft" && player.dx === 0) { player.dx = -1; player.dy = 0; }
+    if (e.key === "ArrowRight" && player.dx === 0) { player.dx = 1; player.dy = 0; }
+});
+
+function gameLoop() {
+    movePlayer();
+    moveEnemies();
+    drawGrid();
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+</body>
+</html>
